@@ -45,13 +45,21 @@ class FluxerClient {
         return;
       }
 
+      const globalName = data.author?.global_name || data.author?.username || 'Fluxer User';
+      const username = data.author?.username || 'Fluxer User';
+      const displayName = globalName !== username ? `${globalName} (${username})` : globalName;
+
       this.onMessage({
         source: 'fluxer',
         content: data.content,
-        author: data.author?.username || 'Fluxer User',
+        author: displayName,
+        username: username,
+        globalName: data.author?.global_name,
+        avatar: data.author?.avatar,
         authorId: data.author?.id,
         messageId: data.id,
-        channelId: data.channel_id
+        channelId: data.channel_id,
+        replyTo: data.message_reference?.message_id
       });
     });
 
