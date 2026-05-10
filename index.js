@@ -151,7 +151,7 @@ async function main() {
           if (bridge.fluxerWebhookUrl) {
             try {
               await axios.post(bridge.fluxerWebhookUrl, {
-                content: `${message.author.username}: ${content}`
+                content: `${content}`
               });
             } catch (error) {
               console.error('Failed to send reply via Fluxer webhook:', error.message || error);
@@ -169,7 +169,7 @@ async function main() {
     if (bridge.fluxerWebhookUrl) {
       try {
         const res = await axios.post(bridge.fluxerWebhookUrl, {
-          content: `${message.author.username}: ${content}`,
+          content: `${content}`,
           username: message.author.username,
           avatar_url: message.author.displayAvatarURL({ dynamic: true })
         });
