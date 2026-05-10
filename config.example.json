@@ -20,6 +20,5 @@
       "fluxerWebhookUrl": "https://api.fluxer.app/webhooks/...",
       "discordWebhookUrl": "https://discord.com/api/webhooks/..."
     }
-  ],
-  "relayPrefix": "[Fluxer]"
+  ]
 }

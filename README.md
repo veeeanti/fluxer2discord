@@ -51,11 +51,10 @@ node index.js
 - `fluxer.version`: API version (default: "1")
 - `mappings.discordChannelId`: Discord channel ID used for this bridge
 - `mappings.fluxerChannelId`: Fluxer channel ID used for this bridge
-- `relayPrefix`: Prefix for relayed messages (default: "[Fluxer]")
 
 ### Message Format
 
 With webhooks configured on both sides, messages relay with sender's username and avatar.
-Without webhooks, messages use the format `username: message` or `{prefix} **username**: message`.
+Without webhooks, messages use the format `**username:** message`.
 
 

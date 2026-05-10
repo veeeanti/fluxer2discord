@@ -32,7 +32,6 @@ async function main() {
   const fluxerToken = config.fluxer.token || process.env.FLUXER_BOT_TOKEN;
   const fluxerBaseUrl = config.fluxer.baseUrl || 'https://api.fluxer.app';
   const fluxerVersion = config.fluxer.version || '1';
-  const relayPrefix = config.relayPrefix || '[Fluxer]';
 
   if (!discordToken) throw new Error('Discord bot token is required.');
   if (!fluxerToken) throw new Error('Fluxer bot token is required.');
@@ -120,7 +119,7 @@ async function main() {
         console.error('Failed to send Fluxer message to Discord:', error.message || error);
       }
     } else {
-      const text = `${relayPrefix} **${message.author}**: ${message.content}`;
+      const text = `**${message.author}**: ${message.content}`;
       const sent = await channel.send({ content: text }).catch((error) => {
         console.error('Failed to send Fluxer message to Discord:', error.message || error);
       });
@@ -156,10 +155,12 @@ async function main() {
             } catch (error) {
               console.error('Failed to send reply via Fluxer webhook:', error.message || error);
             }
+            console.log(`Relayed Discord reply from ${message.author.username} to Fluxer via webhook.`);
           } else {
             await fluxerClient.sendMessage(bridge.fluxerChannelId, `${message.author.username}: ${content}`, {
               message_reference: fluxerId
             });
+            console.log(`Relayed Discord reply from ${message.author.username} to Fluxer.`);
           }
           return;
         }
@@ -177,6 +178,7 @@ async function main() {
       } catch (error) {
         console.error('Failed to send Discord message to Fluxer:', error.message || error);
       }
+      console.log(`Relayed Discord message from ${message.author.username} to Fluxer via webhook.`);
     } else {
       try {
         const sent = await fluxerClient.sendMessage(bridge.fluxerChannelId, `${message.author.username}: ${content}`, {
