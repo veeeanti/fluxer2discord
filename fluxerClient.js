@@ -4,9 +4,9 @@ const {WebSocketManager} = require('@discordjs/ws');
 const {Routes} = require('discord-api-types/v10');
 
 class FluxerClient {
-  constructor(config, onMessage) {
+  constructor(config) {
     this.config = config;
-    this.onMessage = onMessage;
+    this.onMessage = null;
     this.client = null;
     this.gateway = null;
   }
@@ -18,7 +18,7 @@ class FluxerClient {
   }
 
   async _validateConfig() {
-    const required = ['baseUrl', 'token', 'channelId'];
+    const required = ['baseUrl', 'token'];
     const missing = required.filter((key) => !this.config[key]);
     if (missing.length) {
       throw new Error(`Fluxer config missing: ${missing.join(', ')}`);
@@ -49,18 +49,20 @@ class FluxerClient {
       const username = data.author?.username || 'Fluxer User';
       const displayName = globalName !== username ? `${globalName} (${username})` : globalName;
 
-      this.onMessage({
-        source: 'fluxer',
-        content: data.content,
-        author: displayName,
-        username: username,
-        globalName: data.author?.global_name,
-        avatar: data.author?.avatar,
-        authorId: data.author?.id,
-        messageId: data.id,
-        channelId: data.channel_id,
-        replyTo: data.message_reference?.message_id
-      });
+      if (this.onMessage) {
+        await this.onMessage({
+          source: 'fluxer',
+          content: data.content,
+          author: displayName,
+          username: username,
+          globalName: data.author?.global_name,
+          avatar: data.author?.avatar,
+          authorId: data.author?.id,
+          messageId: data.id,
+          channelId: data.channel_id,
+          replyTo: data.message_reference?.message_id
+        });
+      }
     });
 
     this.client.on(GatewayDispatchEvents.Ready, ({data}) => {
