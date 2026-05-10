@@ -1,0 +1,17 @@
+{
+  "discord": {
+    "token": "",
+    "channelId": ""
+  },
+  "fluxer": {
+    "baseUrl": "https://api.fluxer.app",
+    "token": "",
+    "channelId": "",
+    "version": "1"
+  },
+  "mappings": {
+    "discordChannelId": "",
+    "fluxerChannelId": ""
+  },
+  "relayPrefix": "[Flux2cord]"
+}

@@ -1,0 +1,21 @@
+{
+  "name": "fluxer2discord",
+  "version": "0.1.0",
+  "description": "Bridge between Fluxer and Discord channels",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@discordjs/core": "^2.4.0",
+    "@discordjs/rest": "^2.6.0",
+    "@discordjs/ws": "^2.0.0",
+    "discord-api-types": "^0.37.0",
+    "discord.js": "^14.15.0",
+    "dotenv": "^16.4.0"
+  }
+}
