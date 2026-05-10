@@ -1,22 +1,20 @@
 {
   "discord": {
-    "token": "YOUR_DISCORD_TOKEN"
+    "token": "discord_token",
+    "webhookUrl": "https://discord.com/api/webhooks/...",
+    "channelId": "discord_channel_id"
   },
   "fluxer": {
     "baseUrl": "https://api.fluxer.app",
-    "token": "YOUR_FLUXER_TOKEN",
-    "version": "1"
+    "token": "fluxer_token",
+    "version": "1",
+    "webhookUrl": "https://api.fluxer.app/webhooks/...",
+    "channelId": "fluxer_channel_id"
   },
   "mappings": [
     {
-      "discordChannelId": "YOUR_DISCORD_CHANNEL_ID_1",
-      "fluxerChannelId": "YOUR_FLUXER_CHANNEL_ID_1",
-      "fluxerWebhookUrl": "https://api.fluxer.app/webhooks/...",
-      "discordWebhookUrl": "https://discord.com/api/webhooks/..."
-    },
-    {
-      "discordChannelId": "YOUR_DISCORD_CHANNEL_ID_2",
-      "fluxerChannelId": "YOUR_FLUXER_CHANNEL_ID_2",
+      "discordChannelId": "discord_channel_id",
+      "fluxerChannelId": "fluxer_channel_id",
       "fluxerWebhookUrl": "https://api.fluxer.app/webhooks/...",
       "discordWebhookUrl": "https://discord.com/api/webhooks/..."
     }
