@@ -1,8 +1,8 @@
 require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
-const { Client, GatewayIntentBits, Partials, WebhookClient } = require('discord.js');
-const FluxerClient = require('./fluxerClient');
+const { Client, GatewayIntentBits, Partials } = require('discord.js');
+const FluxerClient = require('./bridgeClient');
 const axios = require('axios');
 
 function loadConfig() {
@@ -28,7 +28,7 @@ async function main() {
   }
 
   const discordToken = config.discord.token || process.env.DISCORD_TOKEN;
-  const discordWebhookUrl = config.discord.webhookUrl;
+  const globalDiscordWebhookUrl = config.discord.webhookUrl;
   const fluxerToken = config.fluxer.token || process.env.FLUXER_BOT_TOKEN;
   const fluxerBaseUrl = config.fluxer.baseUrl || 'https://api.fluxer.app';
   const fluxerVersion = config.fluxer.version || '1';
@@ -41,7 +41,8 @@ async function main() {
     partials: [Partials.Channel]
   });
 
-  const discordWebhook = discordWebhookUrl ? new WebhookClient({ url: discordWebhookUrl }) : null;
+  // Global Discord webhook (optional fallback)
+  const globalDiscordWebhook = globalDiscordWebhookUrl ? new WebhookClient({ url: globalDiscordWebhookUrl }) : null;
 
   const fluxerConfig = {
     baseUrl: fluxerBaseUrl,
@@ -60,6 +61,7 @@ async function main() {
     const discordChannelId = mapping.discordChannelId || mapping.discordChannel;
     const fluxerChannelId = mapping.fluxerChannelId || mapping.fluxerChannel;
     const fluxerWebhookUrl = mapping.fluxerWebhookUrl || config.fluxer?.webhookUrl;
+    const discordWebhookUrl = mapping.discordWebhookUrl || globalDiscordWebhookUrl;
 
     if (!discordChannelId || !fluxerChannelId) continue;
 
@@ -67,6 +69,7 @@ async function main() {
       discordChannelId,
       fluxerChannelId,
       fluxerWebhookUrl,
+      discordWebhookUrl,
       discordToFluxer: new Map(),
       fluxerToDiscord: new Map()
     };
@@ -106,25 +109,32 @@ async function main() {
       }
     }
 
-    if (discordWebhook) {
+    let sent;
+    if (bridge.discordWebhookUrl) {
       try {
         const avatarUrl = message.avatar && message.authorId ? fluxerAvatarUrl(message.authorId, message.avatar) : null;
-        const sent = await discordWebhook.send({
+        sent = await axios.post(bridge.discordWebhookUrl, {
           content: message.content,
           username: message.author,
-          avatarURL: avatarUrl
+          avatar_url: avatarUrl
         });
-        bridge.discordToFluxer.set(sent.id, message.messageId);
+        // Webhook doesn't return message ID, use a placeholder
+        const fakeDiscordId = `webhook_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        bridge.discordToFluxer.set(fakeDiscordId, message.messageId);
       } catch (error) {
-        console.error('Failed to send Fluxer message to Discord:', error.message || error);
+        console.error('Failed to send Fluxer message to Discord via webhook:', error.message || error);
+        return;
       }
     } else {
       const text = `**${message.author}**: ${message.content}`;
-      const sent = await channel.send({ content: text }).catch((error) => {
+      sent = await channel.send({ content: text }).catch((error) => {
         console.error('Failed to send Fluxer message to Discord:', error.message || error);
       });
-      if (sent) bridge.discordToFluxer.set(sent.id, message.messageId);
+      if (!sent) return;
+      bridge.discordToFluxer.set(sent.id, message.messageId);
     }
+    // Also populate the reverse map for replies
+    bridge.fluxerToDiscord.set(message.messageId, sent ? sent.id || `webhook_${Date.now()}` : null);
   };
 
   discordClient.once('ready', async () => {
@@ -145,38 +155,47 @@ async function main() {
 
     if (message.reference) {
       const refMsgId = message.reference.messageId;
-      for (const [fluxerId, discordId] of bridge.fluxerToDiscord.entries()) {
-        if (discordId === refMsgId) {
-          if (bridge.fluxerWebhookUrl) {
-            try {
-              await axios.post(bridge.fluxerWebhookUrl, {
-                content: `${content}`
-              });
-            } catch (error) {
-              console.error('Failed to send reply via Fluxer webhook:', error.message || error);
-            }
-            console.log(`Relayed Discord reply from ${message.author.username} to Fluxer via webhook.`);
-          } else {
-            await fluxerClient.sendMessage(bridge.fluxerChannelId, `${message.author.username}: ${content}`, {
-              message_reference: fluxerId
+      // Look up the Fluxer message ID that corresponds to the referenced Discord message
+      const originalFluxerId = bridge.discordToFluxer.get(refMsgId);
+      if (originalFluxerId) {
+        if (bridge.fluxerWebhookUrl) {
+          try {
+            // Include message_reference in webhook payload for threaded replies
+            await axios.post(bridge.fluxerWebhookUrl, {
+              content: `${message.author.username}: ${content}`,
+              message_reference: originalFluxerId
             });
-            console.log(`Relayed Discord reply from ${message.author.username} to Fluxer.`);
+          } catch (error) {
+            console.error('Failed to send reply via Fluxer webhook:', error.message || error);
           }
-          return;
+          console.log(`Relayed Discord reply from ${message.author.username} to Fluxer via webhook.`);
+        } else {
+          const sent = await fluxerClient.sendMessage(bridge.fluxerChannelId, `${message.author.username}: ${content}`, {
+            message_reference: originalFluxerId
+          });
+          // Map the new Fluxer reply message to the original Discord message it replied to
+          if (sent && sent.id) {
+            bridge.fluxerToDiscord.set(sent.id, message.id);
+          }
+          console.log(`Relayed Discord reply from ${message.author.username} to Fluxer.`);
         }
+        return;
       }
     }
 
     if (bridge.fluxerWebhookUrl) {
       try {
         const res = await axios.post(bridge.fluxerWebhookUrl, {
-          content: `${content}`,
+          content: `${message.author.username}: ${content}`,
           username: message.author.username,
           avatar_url: message.author.displayAvatarURL({ dynamic: true })
         });
-        bridge.fluxerToDiscord.set(res.data.id, message.id);
+        // Webhook response may not include message ID; use a placeholder
+        const fakeFluxerId = `webhook_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        bridge.fluxerToDiscord.set(fakeFluxerId, message.id);
       } catch (error) {
-        console.error('Failed to send Discord message to Fluxer:', error.message || error);
+        console.error('Failed to send Discord message to Fluxer via webhook:', error.message || error);
+        return;
       }
       console.log(`Relayed Discord message from ${message.author.username} to Fluxer via webhook.`);
     } else {
@@ -187,9 +206,10 @@ async function main() {
         bridge.fluxerToDiscord.set(sent.id, message.id);
       } catch (error) {
         console.error('Failed to send Discord message to Fluxer:', error.message || error);
+        return;
       }
+      console.log(`Relayed Discord message from ${message.author.username} to Fluxer.`);
     }
-    console.log(`Relayed Discord message from ${message.author.username} to Fluxer.`);
   });
 
   discordClient.login(discordToken).catch((error) => {

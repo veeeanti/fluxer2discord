@@ -1,12 +1,19 @@
 # Fluxer2Discord Bridge
 
-Bridge between a discord channel and a fluxer channel, only works with one currently and requires a bot for both.
+Bridge between Discord and Fluxer channels with support for multiple channel mappings and threaded replies.
+
+## Features
+
+- **Multiple channel mappings**: Pair multiple Discord channels with multiple Fluxer channels
+- **Per-mapping webhooks**: Configure separate webhooks for each channel pair
+- **Threaded replies**: Replies on either platform are correctly threaded to the original message
+- **Username/avatar preservation**: When using webhooks, original sender's identity is preserved
 
 ## Setup
 
 0. Install requirements for local hosting:
- - node.js 
- - npm
+  - node.js
+  - npm
 
 1. Install dependencies:
 
@@ -16,16 +23,16 @@ npm install
 
 2. Rename the example config:
 
-```
-config.example.json >> config.json
+```bash
+cp config.example.json config.json
 ```
 
-3. Update `config.json` with your Discord bot token, channel ID, and Fluxer server configuration.
+3. Update `config.json` with your Discord bot token and Fluxer server configuration.
 
-4. Create webhooks for Tupperbox-like behavior:
-   - Discord: Go to server settings > Integrations > Webhooks > New Webhook
-   - Fluxer: Go to channel settings > Webhooks > New Webhook
-   - Copy both URLs to each respective WebhookUrl field
+4. Create webhooks for Tupperbox-like behavior (recommended):
+   - **Discord**: Go to server settings > Integrations > Webhooks > New Webhook
+   - **Fluxer**: Go to channel settings > Webhooks > New Webhook
+   - Copy both URLs to the appropriate webhook fields in the config
 
 5. Start the bridge:
 
@@ -39,22 +46,80 @@ node index.js
 
 ## Configuration
 
-`config.json` should contain:
+`config.json` supports the following structure:
 
-- `discord.token`: Discord bot token
-- `discord.channelId`: Discord channel ID to bridge
-- `discord.webhookUrl`: Discord webhook URL (for Tupperbox-like username/avatar display)
-- `fluxer.baseUrl`: Fluxer API base URL (default: https://api.fluxer.app)
-- `fluxer.token`: Fluxer bot token
-- `fluxer.channelId`: Fluxer channel ID to bridge
-- `fluxer.webhookUrl`: Fluxer webhook URL (for Tupperbox-like username/avatar display)
-- `fluxer.version`: API version (default: "1")
-- `mappings.discordChannelId`: Discord channel ID used for this bridge
-- `mappings.fluxerChannelId`: Fluxer channel ID used for this bridge
+```json
+{
+  "discord": {
+    "token": "YOUR_DISCORD_BOT_TOKEN",
+    "webhookUrl": "https://discord.com/api/webhooks/..."
+  },
+  "fluxer": {
+    "baseUrl": "https://api.fluxer.app",
+    "token": "YOUR_FLUXER_BOT_TOKEN",
+    "version": "1",
+    "webhookUrl": "https://api.fluxer.app/webhooks/..."
+  },
+  "mappings": [
+    {
+      "discordChannelId": "DISCORD_CHANNEL_ID_1",
+      "fluxerChannelId": "FLUXER_CHANNEL_ID_1",
+      "fluxerWebhookUrl": "https://api.fluxer.app/webhooks/...",
+      "discordWebhookUrl": "https://discord.com/api/webhooks/..."
+    },
+    {
+      "discordChannelId": "DISCORD_CHANNEL_ID_2",
+      "fluxerChannelId": "FLUXER_CHANNEL_ID_2"
+    }
+  ]
+}
+```
 
-### Message Format
+### Configuration Options
 
-With webhooks configured on both sides, messages relay with sender's username and avatar.
-Without webhooks, messages use the format `**username:** message`.
+| Option | Type | Description |
+|--------|------|-------------|
+| `discord.token` | string | Discord bot token (required) |
+| `discord.webhookUrl` | string | Default Discord webhook URL (optional, can be overridden per mapping) |
+| `fluxer.token` | string | Fluxer bot token (required) |
+| `fluxer.baseUrl` | string | Fluxer API base URL (default: `https://api.fluxer.app`) |
+| `fluxer.webhookUrl` | string | Default Fluxer webhook URL (optional, can be overridden per mapping) |
+| `fluxer.version` | string | API version (default: `"1"`) |
+| `mappings` | array | List of channel pair mappings |
+
+### Mapping Options
+
+Each mapping in the `mappings` array can include:
+
+**Note**: Channel IDs are defined only in the `mappings` array. The top-level `discord.channelId` and `fluxer.channelId` fields (shown in older examples) are **not used** by the bridge.
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `discordChannelId` | string | Discord channel ID (required) |
+| `fluxerChannelId` | string | Fluxer channel ID (required) |
+| `discordWebhookUrl` | string | Discord webhook URL for this mapping (optional, falls back to `discord.webhookUrl`) |
+| `fluxerWebhookUrl` | string | Fluxer webhook URL for this mapping (optional, falls back to `fluxer.webhookUrl`) |
+
+**Note**: Webhooks are recommended for proper username/avatar display. Without webhooks, messages are formatted as `**username:** message`.
+
+## How It Works
+
+1. The bridge connects to both Discord and Fluxer using bot tokens.
+2. For each mapping, messages from one platform are relayed to the corresponding channel on the other platform.
+3. When a user replies to a bridged message, the reply is correctly threaded to the original message on the other platform.
+4. Message ID mappings are maintained in memory to track which messages correspond to each other across platforms.
+
+### Reply Handling
+
+- **Fluxer → Discord**: When a Fluxer user replies to a bridged message, the reply appears as a reply to the original Discord message.
+- **Discord → Fluxer**: When a Discord user replies to a bridged message, the reply appears as a reply to the original Fluxer message (when using the Fluxer API; webhook replies are sent as regular messages due to webhook limitations).
+
+### Message ID Mapping
+
+The bridge maintains two maps per channel pair:
+- `discordToFluxer`: Discord message ID → Fluxer message ID
+- `fluxerToDiscord`: Fluxer message ID → Discord message ID
+
+These maps enable correct reply threading across platforms.
 
 
