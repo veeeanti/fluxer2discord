@@ -8,6 +8,7 @@ Bridge between Discord and Fluxer channels with support for multiple channel map
 - **Per-mapping webhooks**: Configure separate webhooks for each channel pair
 - **Threaded replies**: Replies on either platform are correctly threaded to the original message
 - **Username/avatar preservation**: When using webhooks, original sender's identity is preserved
+- **Media support**: Images, videos, GIFs, custom emojis, and stickers are automatically bridged
 
 ## Setup
 
@@ -113,6 +114,16 @@ Each mapping in the `mappings` array can include:
 
 - **Fluxer → Discord**: When a Fluxer user replies to a bridged message, the reply appears as a reply to the original Discord message.
 - **Discord → Fluxer**: When a Discord user replies to a bridged message, the reply appears as a reply to the original Fluxer message (when using the Fluxer API; webhook replies are sent as regular messages due to webhook limitations).
+
+### Media Support
+
+The bridge automatically handles media attachments:
+
+- **Images, videos, GIFs**: Downloaded from the source and re-uploaded to the destination
+- **Custom Discord emojis**: Converted to static/animated PNG images and sent as attachments
+- **Stickers**: Downloaded and sent as image attachments
+
+Media files are processed asynchronously and sent along with the message content.
 
 ### Message ID Mapping
 

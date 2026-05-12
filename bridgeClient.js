@@ -2,6 +2,7 @@ const {Client, GatewayDispatchEvents} = require('@discordjs/core');
 const {REST} = require('@discordjs/rest');
 const {WebSocketManager} = require('@discordjs/ws');
 const {Routes} = require('discord-api-types/v10');
+const FormData = require('form-data');
 
 class FluxerClient {
   constructor(config) {
@@ -60,7 +61,8 @@ class FluxerClient {
           authorId: data.author?.id,
           messageId: data.id,
           channelId: data.channel_id,
-          replyTo: data.message_reference?.message_id
+          replyTo: data.message_reference?.message_id,
+          attachments: data.attachments || []
         });
       }
     });
@@ -76,10 +78,35 @@ class FluxerClient {
       throw new Error('Fluxer client not initialized');
     }
 
+    // If files are provided (as FormData), send multipart request
+    if (options.files instanceof FormData) {
+      const form = options.files;
+      // Add content to form if not already added
+      if (!form.has('content')) {
+        form.append('content', content);
+      }
+      // Add message_reference if provided
+      if (options.message_reference) {
+        form.append('message_reference', options.message_reference);
+      }
+      
+      return this.client.rest.post(
+        `${this.config.baseUrl}/channels/${channelId}/messages`,
+        form,
+        {
+          headers: form.getHeaders({
+            'Authorization': this.config.token
+          })
+        }
+      );
+    }
+
+    // Regular JSON message
     return this.client.rest.post(Routes.channelMessages(channelId), {
       body: {
         content,
-        ...options
+        ...(options.message_reference ? { message_reference: options.message_reference } : {}),
+        ...(options.attachments ? { attachments: options.attachments } : {})
       }
     });
   }
