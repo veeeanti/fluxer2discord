@@ -41,9 +41,6 @@ async function main() {
     partials: [Partials.Channel]
   });
 
-  // Global Discord webhook (optional fallback)
-  const globalDiscordWebhook = globalDiscordWebhookUrl ? new WebhookClient({ url: globalDiscordWebhookUrl }) : null;
-
   const fluxerConfig = {
     baseUrl: fluxerBaseUrl,
     token: fluxerToken,
