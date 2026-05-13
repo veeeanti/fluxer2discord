@@ -186,7 +186,7 @@ async function processFluxerMessageMedia(message) {
   if (message.attachments && Array.isArray(message.attachments)) {
     for (const attachment of message.attachments) {
       try {
-        const url = attachment.url || `${message.fluxerBaseUrl || 'https://api.fluxer.app'}/attachments/${attachment.id}/${attachment.filename}`;
+        const url = attachment.url || `${message.fluxerMediaUrl} || https://fluxerusercontent.com/attachments/${attachment.id}/${attachment.filename}`;
         const buffer = await downloadFile(url);
         files.push({
           buffer,
@@ -213,6 +213,8 @@ async function main() {
   const fluxerToken = config.fluxer.token || process.env.FLUXER_BOT_TOKEN;
   const fluxerBaseUrl = config.fluxer.baseUrl || 'https://api.fluxer.app';
   const fluxerVersion = config.fluxer.version || '1';
+  const fluxerServerId = config.fluxer.serverId || process.env.FLUXER_SERVER_ID;
+  const discordServerId = config.discord.serverId || process.env.DISCORD_SERVER_ID;
 
   if (!discordToken) throw new Error('Discord bot token is required.');
   if (!fluxerToken) throw new Error('Fluxer bot token is required.');
@@ -260,7 +262,7 @@ async function main() {
 
   // Fluxer message handler
   fluxerClient.onMessage = async (message) => {
-    if (!message || message.source !== 'fluxer') return;
+    if (!message || message.source !== 'fluxer') return;}
 
     // Find the bridge for this fluxer channel
     const bridge = bridges.find(b => b.fluxerChannelId === message.channelId);
@@ -480,7 +482,7 @@ async function main() {
     console.error('Discord login failed:', error.message || error);
     process.exit(1);
   });
-}
+
 
 main().catch((error) => {
   console.error('Bridge startup failed:', error.message || error);

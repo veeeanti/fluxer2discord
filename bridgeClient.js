@@ -48,7 +48,8 @@ class FluxerClient {
 
       const globalName = data.author?.global_name || data.author?.username || 'Fluxer User';
       const username = data.author?.username || 'Fluxer User';
-      const displayName = globalName !== username ? `${globalName} (${username})` : globalName;
+      const discriminator = data.author?.discriminator || '0000';
+      const displayName = globalName !== username ? `${globalName} (${username}#${data.author?.discriminator})` : globalName;
 
       if (this.onMessage) {
         await this.onMessage({
@@ -56,6 +57,7 @@ class FluxerClient {
           content: data.content,
           author: displayName,
           username: username,
+          discriminator: data.author?.discriminator,
           globalName: data.author?.global_name,
           avatar: data.author?.avatar,
           authorId: data.author?.id,
